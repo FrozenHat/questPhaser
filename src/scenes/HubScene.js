@@ -24,14 +24,14 @@ export default class HubScene extends Phaser.Scene {
         // Configure camera
         this.setupCamera(bgWidth, bgHeight);
 
-        // Add title (will move with camera)
-        this.add.text(bgWidth / 2, 50, 'Quest Phaser - Hub', {
+        // Add title (fixed to camera)
+        this.titleText = this.add.text(0, 50, 'Quest Phaser - Hub', {
             font: '32px Arial',
             fill: '#ffffff'
         }).setOrigin(0.5).setScrollFactor(0);
 
-        // Add instructions (will move with camera)
-        this.add.text(bgWidth / 2, 100, 'Click anywhere to move the player', {
+        // Add instructions (fixed to camera)
+        this.instructionsText = this.add.text(0, 100, 'Click anywhere to move the player', {
             font: '16px Arial',
             fill: '#cccccc'
         }).setOrigin(0.5).setScrollFactor(0);
@@ -85,19 +85,34 @@ export default class HubScene extends Phaser.Scene {
         
         camera.setViewport(0, 0, width, height);
         
-        // If camera height is bigger than background, limit camera bounds
+        // Calculate camera bounds
+        let boundsX = 0;
+        let boundsY = 0;
+        let boundsWidth = bgWidth;
+        let boundsHeight = bgHeight;
+        
+        // If camera height is bigger than background, center vertically
         if (height > bgHeight) {
-            // Center vertically
             const offsetY = (height - bgHeight) / 2;
-            camera.setBounds(0, -offsetY, bgWidth, height);
-        } else {
-            camera.setBounds(0, 0, bgWidth, bgHeight);
+            boundsY = -offsetY;
+            boundsHeight = height;
         }
         
-        // Same for width
+        // If camera width is bigger than background, center horizontally
         if (width > bgWidth) {
             const offsetX = (width - bgWidth) / 2;
-            camera.setBounds(-offsetX, camera.scrollY, width, bgHeight);
+            boundsX = -offsetX;
+            boundsWidth = width;
+        }
+        
+        camera.setBounds(boundsX, boundsY, boundsWidth, boundsHeight);
+        
+        // Update UI element positions to center of viewport
+        if (this.titleText) {
+            this.titleText.setPosition(width / 2, 50);
+        }
+        if (this.instructionsText) {
+            this.instructionsText.setPosition(width / 2, 100);
         }
     }
 
