@@ -3,11 +3,30 @@ export default class NavigationSystem {
         this.scene = scene;
         this.player = player;
         
+        // Navigation map for walkable areas
+        this.navMapKey = 'hub_navmap';
+        
+        // Threshold for considering a pixel as walkable (0-255)
+        // Higher values mean lighter pixels are required for walkability
+        this.walkableThreshold = 128;
+        
         // Visual feedback for clicks
         this.targetMarker = null;
+        
+        // Validate that navigation map is loaded
+        if (!this.scene.textures.exists(this.navMapKey)) {
+            console.warn(`NavigationSystem: Navigation map '${this.navMapKey}' not found. All areas will be considered walkable.`);
+        }
     }
 
     moveTo(x, y) {
+        // Check if the clicked position is walkable
+        if (!this.isWalkable(x, y)) {
+            console.log(`NavigationSystem: Position (${x}, ${y}) is not walkable`);
+            this.showInvalidMarker(x, y);
+            return;
+        }
+        
         console.log(`NavigationSystem: Moving to (${x}, ${y})`);
         
         // Update player movement
@@ -15,6 +34,58 @@ export default class NavigationSystem {
         
         // Show visual marker at target location
         this.showTargetMarker(x, y);
+    }
+
+    isWalkable(x, y) {
+        // If navigation map doesn't exist, consider all areas walkable
+        if (!this.scene.textures.exists(this.navMapKey)) {
+            return true;
+        }
+        
+        // Get the texture to check bounds
+        const texture = this.scene.textures.get(this.navMapKey);
+        const source = texture.getSourceImage();
+        
+        // Validate coordinates are within texture bounds
+        if (x < 0 || y < 0 || x >= source.width || y >= source.height) {
+            return false;
+        }
+        
+        // Get the pixel color from the navigation map
+        const pixel = this.scene.textures.getPixel(Math.floor(x), Math.floor(y), this.navMapKey);
+        
+        // If pixel is null or undefined, consider it non-walkable
+        if (!pixel) {
+            return false;
+        }
+        
+        // For grayscale navigation maps, use the red channel directly
+        // (In grayscale images, R=G=B, so checking any channel is sufficient)
+        const brightness = pixel.r;
+        
+        return brightness >= this.walkableThreshold;
+    }
+
+    showInvalidMarker(x, y) {
+        // Show a red X for invalid clicks
+        const marker = this.scene.add.graphics();
+        marker.lineStyle(3, 0xff0000, 0.8);
+        marker.beginPath();
+        marker.moveTo(x - 10, y - 10);
+        marker.lineTo(x + 10, y + 10);
+        marker.moveTo(x + 10, y - 10);
+        marker.lineTo(x - 10, y + 10);
+        marker.strokePath();
+        
+        // Fade out marker after a short time
+        this.scene.tweens.add({
+            targets: marker,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => {
+                marker.destroy();
+            }
+        });
     }
 
     showTargetMarker(x, y) {
