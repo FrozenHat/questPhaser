@@ -10,8 +10,11 @@ export default class HubScene extends Phaser.Scene {
     create() {
         console.log('HubScene: Started');
 
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
         // Add hub background image
-        this.add.image(400, 300, 'hub_background');
+        this.add.image(width / 2, height / 2, 'hub_background');
 
         // Add title
         this.add.text(400, 50, 'Quest Phaser - Hub', {

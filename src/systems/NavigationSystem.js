@@ -42,6 +42,15 @@ export default class NavigationSystem {
             return true;
         }
         
+        // Get the texture to check bounds
+        const texture = this.scene.textures.get(this.navMapKey);
+        const source = texture.getSourceImage();
+        
+        // Validate coordinates are within texture bounds
+        if (x < 0 || y < 0 || x >= source.width || y >= source.height) {
+            return false;
+        }
+        
         // Get the pixel color from the navigation map
         const pixel = this.scene.textures.getPixel(Math.floor(x), Math.floor(y), this.navMapKey);
         
