@@ -197,22 +197,26 @@ export default class HubScene extends Phaser.Scene {
         // Create some example interactive zones
         const zone1 = this.add.rectangle(bgWidth * 0.25, bgHeight * 0.7, 100, 100, 0x4a90e2, 0.5);
         zone1.setInteractive({ useHandCursor: true });
-        zone1.on('pointerdown', () => {
+        zone1.on('pointerdown', (pointer, localX, localY, event) => {
             console.log('Zone 1 clicked');
             this.add.text(zone1.x, zone1.y - 50, 'Zone 1!', {
                 font: '16px Arial',
                 fill: '#ffffff'
             }).setOrigin(0.5);
+            // Stop propagation so navigation doesn't trigger
+            event.stopPropagation();
         });
 
         const zone2 = this.add.rectangle(bgWidth * 0.75, bgHeight * 0.7, 100, 100, 0xe24a4a, 0.5);
         zone2.setInteractive({ useHandCursor: true });
-        zone2.on('pointerdown', () => {
+        zone2.on('pointerdown', (pointer, localX, localY, event) => {
             console.log('Zone 2 clicked');
             this.add.text(zone2.x, zone2.y - 50, 'Zone 2!', {
                 font: '16px Arial',
                 fill: '#ffffff'
             }).setOrigin(0.5);
+            // Stop propagation so navigation doesn't trigger
+            event.stopPropagation();
         });
     }
 
