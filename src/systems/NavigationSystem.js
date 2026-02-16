@@ -3,11 +3,25 @@ export default class NavigationSystem {
         this.scene = scene;
         this.player = player;
         
+        // Navigation map for walkable areas
+        this.navMapKey = 'hub_navmap';
+        
+        // Threshold for considering a pixel as walkable (0-255)
+        // Higher values mean lighter pixels are required for walkability
+        this.walkableThreshold = 128;
+        
         // Visual feedback for clicks
         this.targetMarker = null;
     }
 
     moveTo(x, y) {
+        // Check if the clicked position is walkable
+        if (!this.isWalkable(x, y)) {
+            console.log(`NavigationSystem: Position (${x}, ${y}) is not walkable`);
+            this.showInvalidMarker(x, y);
+            return;
+        }
+        
         console.log(`NavigationSystem: Moving to (${x}, ${y})`);
         
         // Update player movement
@@ -15,6 +29,45 @@ export default class NavigationSystem {
         
         // Show visual marker at target location
         this.showTargetMarker(x, y);
+    }
+
+    isWalkable(x, y) {
+        // Get the pixel color from the navigation map
+        const pixel = this.scene.textures.getPixel(Math.floor(x), Math.floor(y), this.navMapKey);
+        
+        // If pixel is null or undefined, consider it non-walkable
+        if (!pixel) {
+            return false;
+        }
+        
+        // Check if the pixel is light enough (walkable areas are white/light)
+        // For grayscale images, we can check any color channel or the alpha
+        // Lighter pixels (higher values) are walkable
+        const brightness = (pixel.r + pixel.g + pixel.b) / 3;
+        
+        return brightness >= this.walkableThreshold;
+    }
+
+    showInvalidMarker(x, y) {
+        // Show a red X for invalid clicks
+        const marker = this.scene.add.graphics();
+        marker.lineStyle(3, 0xff0000, 0.8);
+        marker.beginPath();
+        marker.moveTo(x - 10, y - 10);
+        marker.lineTo(x + 10, y + 10);
+        marker.moveTo(x + 10, y - 10);
+        marker.lineTo(x - 10, y + 10);
+        marker.strokePath();
+        
+        // Fade out marker after a short time
+        this.scene.tweens.add({
+            targets: marker,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => {
+                marker.destroy();
+            }
+        });
     }
 
     showTargetMarker(x, y) {

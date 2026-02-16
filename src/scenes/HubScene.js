@@ -10,8 +10,8 @@ export default class HubScene extends Phaser.Scene {
     create() {
         console.log('HubScene: Started');
 
-        // Set up the scene background
-        this.cameras.main.setBackgroundColor('#3a5f7d');
+        // Add hub background image
+        this.add.image(400, 300, 'hub_background');
 
         // Add title
         this.add.text(400, 50, 'Quest Phaser - Hub', {
