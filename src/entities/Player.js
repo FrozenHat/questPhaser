@@ -40,12 +40,10 @@ export default class Player {
         if (path && path.length > 0) {
             this.path = path;
             this.currentPathIndex = 0;
-            if (path.length > 0) {
-                const firstPoint = path[0];
-                this.targetX = firstPoint.x;
-                this.targetY = firstPoint.y;
-                this.stateMachine.setState('moving');
-            }
+            const firstPoint = path[0];
+            this.targetX = firstPoint.x;
+            this.targetY = firstPoint.y;
+            this.stateMachine.setState('moving');
         }
     }
     

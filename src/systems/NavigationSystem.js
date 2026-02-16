@@ -285,13 +285,19 @@ export default class NavigationSystem {
     gridDistance(a, b) {
         const dx = Math.abs(a.x - b.x);
         const dy = Math.abs(a.y - b.y);
-        // Diagonal distance
-        return Math.sqrt(dx * dx + dy * dy);
+        // Octile distance for diagonal movement
+        const D = 1; // cost of orthogonal move
+        const D2 = Math.SQRT2; // cost of diagonal move
+        return D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy);
     }
     
     heuristic(a, b) {
-        // Manhattan distance
-        return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+        const dx = Math.abs(a.x - b.x);
+        const dy = Math.abs(a.y - b.y);
+        // Octile distance heuristic (consistent with gridDistance)
+        const D = 1;
+        const D2 = Math.SQRT2;
+        return D * (dx + dy) + (D2 - 2 * D) * Math.min(dx, dy);
     }
     
     reconstructPath(node) {
