@@ -12,6 +12,11 @@ export default class NavigationSystem {
         
         // Visual feedback for clicks
         this.targetMarker = null;
+        
+        // Validate that navigation map is loaded
+        if (!this.scene.textures.exists(this.navMapKey)) {
+            console.warn(`NavigationSystem: Navigation map '${this.navMapKey}' not found. All areas will be considered walkable.`);
+        }
     }
 
     moveTo(x, y) {
@@ -32,6 +37,11 @@ export default class NavigationSystem {
     }
 
     isWalkable(x, y) {
+        // If navigation map doesn't exist, consider all areas walkable
+        if (!this.scene.textures.exists(this.navMapKey)) {
+            return true;
+        }
+        
         // Get the pixel color from the navigation map
         const pixel = this.scene.textures.getPixel(Math.floor(x), Math.floor(y), this.navMapKey);
         
@@ -40,9 +50,9 @@ export default class NavigationSystem {
             return false;
         }
         
-        // Check if the pixel is light enough (walkable areas are white/light)
-        // For grayscale images, we can check any color channel or the alpha
-        // Lighter pixels (higher values) are walkable
+        // Calculate brightness for grayscale navigation maps
+        // For grayscale images, all RGB channels have the same value
+        // We use a simple average since the navmap is designed as grayscale
         const brightness = (pixel.r + pixel.g + pixel.b) / 3;
         
         return brightness >= this.walkableThreshold;
