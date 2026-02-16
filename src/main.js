@@ -5,8 +5,6 @@ import HubScene from './scenes/HubScene.js';
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
     parent: 'game-container',
     backgroundColor: '#2d2d2d',
     scene: [BootScene, PreloadScene, HubScene],
@@ -18,8 +16,10 @@ const config = {
         }
     },
     scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        mode: Phaser.Scale.RESIZE,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        autoCenter: Phaser.Scale.NO_CENTER
     }
 };
 
