@@ -11,6 +11,9 @@ export default class HubScene extends Phaser.Scene {
     create() {
         console.log('HubScene: Started');
 
+        // Create player animations
+        this.createPlayerAnimations();
+
         // Add hub background image
         this.backgroundImage = this.add.image(0, 0, 'hub_background').setOrigin(0, 0);
         
@@ -59,6 +62,80 @@ export default class HubScene extends Phaser.Scene {
         // Handle resize
         this.scale.on('resize', this.handleResize, this);
         this.handleResize();
+    }
+
+    createPlayerAnimations() {
+        // Walking animations
+        this.anims.create({
+            key: 'walk_Right',
+            frames: this.anims.generateFrameNumbers('player', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk_Up',
+            frames: this.anims.generateFrameNumbers('player', { start: 8, end: 15 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk_Down',
+            frames: this.anims.generateFrameNumbers('player', { start: 16, end: 23 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk_UpRight',
+            frames: this.anims.generateFrameNumbers('player', { start: 24, end: 31 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk_DownRight',
+            frames: this.anims.generateFrameNumbers('player', { start: 32, end: 39 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Idle animations
+        this.anims.create({
+            key: 'idle_Right',
+            frames: this.anims.generateFrameNumbers('player', { start: 40, end: 43 }),
+            frameRate: 5,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'idle_Up',
+            frames: this.anims.generateFrameNumbers('player', { start: 44, end: 47 }),
+            frameRate: 5,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'idle_Down',
+            frames: this.anims.generateFrameNumbers('player', { start: 48, end: 51 }),
+            frameRate: 5,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'idle_UpRight',
+            frames: this.anims.generateFrameNumbers('player', { start: 52, end: 55 }),
+            frameRate: 5,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'idle_DownRight',
+            frames: this.anims.generateFrameNumbers('player', { start: 56, end: 59 }),
+            frameRate: 5,
+            repeat: -1
+        });
     }
 
     setupCamera(bgWidth, bgHeight) {
@@ -120,22 +197,26 @@ export default class HubScene extends Phaser.Scene {
         // Create some example interactive zones
         const zone1 = this.add.rectangle(bgWidth * 0.25, bgHeight * 0.7, 100, 100, 0x4a90e2, 0.5);
         zone1.setInteractive({ useHandCursor: true });
-        zone1.on('pointerdown', () => {
+        zone1.on('pointerdown', (pointer, localX, localY, event) => {
             console.log('Zone 1 clicked');
             this.add.text(zone1.x, zone1.y - 50, 'Zone 1!', {
                 font: '16px Arial',
                 fill: '#ffffff'
             }).setOrigin(0.5);
+            // Stop propagation so navigation doesn't trigger
+            event.stopPropagation();
         });
 
         const zone2 = this.add.rectangle(bgWidth * 0.75, bgHeight * 0.7, 100, 100, 0xe24a4a, 0.5);
         zone2.setInteractive({ useHandCursor: true });
-        zone2.on('pointerdown', () => {
+        zone2.on('pointerdown', (pointer, localX, localY, event) => {
             console.log('Zone 2 clicked');
             this.add.text(zone2.x, zone2.y - 50, 'Zone 2!', {
                 font: '16px Arial',
                 fill: '#ffffff'
             }).setOrigin(0.5);
+            // Stop propagation so navigation doesn't trigger
+            event.stopPropagation();
         });
     }
 

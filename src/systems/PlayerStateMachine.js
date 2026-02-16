@@ -6,6 +6,10 @@ export default class PlayerStateMachine {
             idle: {
                 enter: () => {
                     console.log('Player state: idle');
+                    // Play idle animation in current direction
+                    if (this.player.currentDirection) {
+                        this.player.playIdleAnimation();
+                    }
                 },
                 update: () => {
                     // Idle state logic
@@ -17,6 +21,7 @@ export default class PlayerStateMachine {
             moving: {
                 enter: () => {
                     console.log('Player state: moving');
+                    // Walk animation is played in Player.update()
                 },
                 update: () => {
                     // Moving state logic
