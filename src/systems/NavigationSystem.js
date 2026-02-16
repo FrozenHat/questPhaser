@@ -59,10 +59,9 @@ export default class NavigationSystem {
             return false;
         }
         
-        // Calculate brightness for grayscale navigation maps
-        // For grayscale images, all RGB channels have the same value
-        // We use a simple average since the navmap is designed as grayscale
-        const brightness = (pixel.r + pixel.g + pixel.b) / 3;
+        // For grayscale navigation maps, use the red channel directly
+        // (In grayscale images, R=G=B, so checking any channel is sufficient)
+        const brightness = pixel.r;
         
         return brightness >= this.walkableThreshold;
     }

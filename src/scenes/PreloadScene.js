@@ -60,6 +60,11 @@ export default class PreloadScene extends Phaser.Scene {
             loadingText.destroy();
             percentText.destroy();
         });
+
+        // Error handling for failed asset loads
+        this.load.on('loaderror', (file) => {
+            console.error(`Failed to load asset: ${file.key}`);
+        });
     }
 
     create() {
