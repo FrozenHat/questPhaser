@@ -11,6 +11,9 @@ export default class HubScene extends Phaser.Scene {
     create() {
         console.log('HubScene: Started');
 
+        // Create player animations
+        this.createPlayerAnimations();
+
         // Add hub background image
         this.backgroundImage = this.add.image(0, 0, 'hub_background').setOrigin(0, 0);
         
@@ -59,6 +62,80 @@ export default class HubScene extends Phaser.Scene {
         // Handle resize
         this.scale.on('resize', this.handleResize, this);
         this.handleResize();
+    }
+
+    createPlayerAnimations() {
+        // Walking animations
+        this.anims.create({
+            key: 'walk_Right',
+            frames: this.anims.generateFrameNumbers('player', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk_Up',
+            frames: this.anims.generateFrameNumbers('player', { start: 8, end: 15 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk_Down',
+            frames: this.anims.generateFrameNumbers('player', { start: 16, end: 23 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk_UpRight',
+            frames: this.anims.generateFrameNumbers('player', { start: 24, end: 31 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'walk_DownRight',
+            frames: this.anims.generateFrameNumbers('player', { start: 32, end: 39 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Idle animations
+        this.anims.create({
+            key: 'idle_Right',
+            frames: this.anims.generateFrameNumbers('player', { start: 40, end: 43 }),
+            frameRate: 5,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'idle_Up',
+            frames: this.anims.generateFrameNumbers('player', { start: 44, end: 47 }),
+            frameRate: 5,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'idle_Down',
+            frames: this.anims.generateFrameNumbers('player', { start: 48, end: 51 }),
+            frameRate: 5,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'idle_UpRight',
+            frames: this.anims.generateFrameNumbers('player', { start: 52, end: 55 }),
+            frameRate: 5,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'idle_DownRight',
+            frames: this.anims.generateFrameNumbers('player', { start: 56, end: 59 }),
+            frameRate: 5,
+            repeat: -1
+        });
     }
 
     setupCamera(bgWidth, bgHeight) {
