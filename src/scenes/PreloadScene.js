@@ -14,11 +14,12 @@ export default class PreloadScene extends Phaser.Scene {
         this.load.image('logo', '/assets/logo.png');
         this.load.image('hub_background', '/assets/hub_background.png');
         this.load.image('hub_navmap', '/assets/hub_navmap.png');
+        this.load.image('hub_occluder', '/assets/hub_occluder.png'); // PNG с альфой
         
         // Load player spritesheet (64x64 frames, 8 frames per row)
-        this.load.spritesheet('player', '/assets/player_spritesheet.png', {
-            frameWidth: 64,
-            frameHeight: 64
+        this.load.spritesheet('player', '/assets/player_spritesheet2.png', {
+            frameWidth: 180,
+            frameHeight: 320
         });
 
         // Create UI after first few assets load

@@ -5,15 +5,35 @@ export default class Player {
     constructor(scene, x, y) {
         this.scene = scene;
         
-        // Create player sprite using spritesheet
+        // Create player sprite with origin at feet
         this.sprite = scene.physics.add.sprite(x, y, 'player');
+        this.sprite.setOrigin(0.5, 0.85); // Anchor at feet
+        
+        // Set smaller physics body
+        const bodyWidth = 40;
+        const bodyHeight = 50;
+        this.sprite.body.setSize(bodyWidth, bodyHeight);
+        // Offset body to bottom of sprite
+        this.sprite.body.setOffset(
+            (this.sprite.width - bodyWidth) / 2,
+            this.sprite.height * 0.85 - bodyHeight
+        );
         
         // Player properties
         this.sprite.body.setCollideWorldBounds(true);
-        this.speed = 200;
+        this.speed = 150;
         
         // Current direction for animation
         this.currentDirection = 'Down';
+        this.currentAnimKey = null;
+        this.currentFlip = false;
+        this.directionChangeCooldown = 120;
+        this.nextDirectionChangeTime = 0;
+
+        this.stuckSamplePos = new Phaser.Math.Vector2(x, y);
+        this.nextStuckCheck = 0;
+        this.stuckInterval = 400;
+        this.stuckThreshold = 2;
         
         // Initialize state machine
         this.stateMachine = new PlayerStateMachine(this);
@@ -25,6 +45,7 @@ export default class Player {
         // Path following
         this.path = [];
         this.currentPathIndex = 0;
+        this.waypointThreshold = 8;
         
         // Play initial idle animation
         this.sprite.play('idle_Down');
@@ -48,68 +69,59 @@ export default class Player {
     }
     
     getDirectionFromAngle(angle) {
-        // angle in radians from -PI to PI
-        // Divide into 8 sectors (each 45°)
+        // Convert to degrees and normalize to 0-360
+        let deg = Phaser.Math.RadToDeg(angle);
+        if (deg < 0) deg += 360;
         
-        const deg = Phaser.Math.RadToDeg(angle);
+        // 8-directional movement with 45-degree sectors
+        // 0° = Right, 90° = Down, 180° = Left, 270° = Up
+        if (deg >= 337.5 || deg < 22.5) {
+            return 'Right';
+        } else if (deg >= 22.5 && deg < 67.5) {
+            return 'DownRight';
+        } else if (deg >= 67.5 && deg < 112.5) {
+            return 'Down';
+        } else if (deg >= 112.5 && deg < 157.5) {
+            return 'DownLeft';
+        } else if (deg >= 157.5 && deg < 202.5) {
+            return 'Left';
+        } else if (deg >= 202.5 && deg < 247.5) {
+            return 'UpLeft';
+        } else if (deg >= 247.5 && deg < 292.5) {
+            return 'Up';
+        } else if (deg >= 292.5 && deg < 337.5) {
+            return 'UpRight';
+        }
         
-        if (deg >= -22.5 && deg < 22.5) return 'Right';
-        else if (deg >= 22.5 && deg < 67.5) return 'DownRight';
-        else if (deg >= 67.5 && deg < 112.5) return 'Down';
-        else if (deg >= 112.5 && deg < 157.5) return 'DownLeft';
-        else if (deg >= 157.5 || deg < -157.5) return 'Left';
-        else if (deg >= -157.5 && deg < -112.5) return 'UpLeft';
-        else if (deg >= -112.5 && deg < -67.5) return 'Up';
-        else if (deg >= -67.5 && deg < -22.5) return 'UpRight';
-        
-        return 'Down'; // default
+        return 'Down';
     }
     
+    hasAnimation(key) {
+        return !!key && this.scene.anims && this.scene.anims.exists(key);
+    }
+
     playDirectionalAnimation(animationType) {
-        // animationType: 'walk' or 'idle'
-        
-        if (!this.targetX || !this.targetY) return;
-        
-        // Calculate angle to target
-        const angle = Phaser.Math.Angle.Between(
-            this.sprite.x,
-            this.sprite.y,
-            this.targetX,
-            this.targetY
-        );
-        
-        // Determine direction
-        const direction = this.getDirectionFromAngle(angle);
-        
-        // For left directions, flip sprite
-        if (direction.includes('Left')) {
-            this.sprite.setFlipX(true);
-            // Use corresponding right animation
-            const rightDirection = direction.replace('Left', 'Right');
-            this.sprite.play(`${animationType}_${rightDirection}`, true);
-        } else {
-            this.sprite.setFlipX(false);
-            this.sprite.play(`${animationType}_${direction}`, true);
-        }
-        
-        // Save current direction for idle
-        this.currentDirection = direction;
-    }
-    
-    playIdleAnimation() {
-        if (this.currentDirection) {
-            const animKey = this.currentDirection.includes('Left') 
-                ? `idle_${this.currentDirection.replace('Left', 'Right')}`
-                : `idle_${this.currentDirection}`;
-            
-            if (this.currentDirection.includes('Left')) {
-                this.sprite.setFlipX(true);
-            } else {
-                this.sprite.setFlipX(false);
+        if (this.targetX === null || this.targetY === null) return;
+
+        const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetX, this.targetY);
+        const rawDirection = this.getDirectionFromAngle(angle);
+        const now = this.scene.time.now;
+
+        if (rawDirection !== this.currentDirection) {
+            if (now >= this.nextDirectionChangeTime) {
+                this.currentDirection = rawDirection;
+                this.nextDirectionChangeTime = now + this.directionChangeCooldown;
             }
-            
-            this.sprite.play(animKey, true);
         }
+
+        const { animKey, needsFlip } = this.resolveAnimation(animationType, this.currentDirection);
+        this.applyAnimation(animKey, needsFlip);
+    }
+
+    playIdleAnimation(force = false) {
+        const direction = this.currentDirection ?? 'Down';
+        const { animKey, needsFlip } = this.resolveAnimation('idle', direction);
+        this.applyAnimation(animKey, needsFlip, true);
     }
 
     stopMovement() {
@@ -126,46 +138,104 @@ export default class Player {
     }
 
     update() {
-        // Update state machine
         this.stateMachine.update();
-        
-        // Handle movement
-        if (this.targetX !== null && this.targetY !== null) {
-            const distance = Phaser.Math.Distance.Between(
-                this.sprite.x,
-                this.sprite.y,
-                this.targetX,
-                this.targetY
-            );
 
-            if (distance < 5) {
-                // Reached current waypoint
+        if (this.targetX !== null && this.targetY !== null) {
+            const distance = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, this.targetX, this.targetY);
+
+            if (distance < this.waypointThreshold) {
                 if (this.path.length > 0 && this.currentPathIndex < this.path.length - 1) {
-                    // Move to next waypoint
                     this.currentPathIndex++;
                     const nextPoint = this.path[this.currentPathIndex];
                     this.targetX = nextPoint.x;
                     this.targetY = nextPoint.y;
                 } else {
-                    // Reached final destination
                     this.stopMovement();
                 }
             } else {
-                // Play walk animation towards target
                 this.playDirectionalAnimation('walk');
-                
-                const angle = Phaser.Math.Angle.Between(
-                    this.sprite.x,
-                    this.sprite.y,
-                    this.targetX,
-                    this.targetY
-                );
-                
-                this.sprite.body.setVelocity(
-                    Math.cos(angle) * this.speed,
-                    Math.sin(angle) * this.speed
-                );
+
+                const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetX, this.targetY);
+                this.sprite.body.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
+
+                this.checkStuck();
             }
+        } else {
+            this.sprite.body.setVelocity(0, 0);
+        }
+    }
+
+    resolveAnimation(animationType, direction) {
+        const isLeft = direction.includes('Left');
+        let animKey = `${animationType}_${direction.replace('Left', 'Right')}`;
+        let needsFlip = isLeft;
+
+        if (!this.hasAnimation(animKey)) {
+            if (direction.includes('Down')) {
+                animKey = `${animationType}_Down`;
+                needsFlip = false;
+            } else if (direction.includes('Up')) {
+                animKey = `${animationType}_Up`;
+                needsFlip = false;
+            } else {
+                animKey = `${animationType}_Right`;
+                needsFlip = direction.includes('Left');
+            }
+        }
+
+        return { animKey, needsFlip };
+    }
+
+    applyAnimation(animKey, needsFlip, force = false) {
+        if (!this.hasAnimation(animKey)) return;
+
+        const shouldChange =
+            force ||
+            this.currentAnimKey !== animKey ||
+            this.currentFlip !== needsFlip ||
+            !this.sprite.anims.isPlaying;
+
+        if (!shouldChange) return;
+
+        this.sprite.setFlipX(needsFlip);
+        this.currentAnimKey = animKey;
+        this.currentFlip = needsFlip;
+        this.sprite.anims.play(animKey, true);
+    }
+
+    checkStuck() {
+        const now = this.scene.time.now;
+        if (now < this.nextStuckCheck) return;
+
+        const moved = Phaser.Math.Distance.Between(
+            this.sprite.x,
+            this.sprite.y,
+            this.stuckSamplePos.x,
+            this.stuckSamplePos.y
+        );
+
+        if (moved < this.stuckThreshold) {
+            this.skipBlockedWaypoint();
+        } else {
+            this.stuckSamplePos.set(this.sprite.x, this.sprite.y);
+        }
+
+        this.nextStuckCheck = now + this.stuckInterval;
+    }
+
+    skipBlockedWaypoint() {
+        if (this.path.length === 0) {
+            this.stopMovement();
+            return;
+        }
+
+        if (this.currentPathIndex < this.path.length - 1) {
+            this.currentPathIndex++;
+            const nextPoint = this.path[this.currentPathIndex];
+            this.targetX = nextPoint.x;
+            this.targetY = nextPoint.y;
+        } else {
+            this.stopMovement();
         }
     }
 
