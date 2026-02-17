@@ -298,49 +298,108 @@ export default class HubScene extends Phaser.Scene {
 
     showTaxiDialog() {
         this.dialogActive = true;
+        this.taxiDialogStage = 'choice'; // choice | answer
+        this.selectedTaxiChoice = null;
 
-        const cam = this.cameras.main;
-        const centerX = cam.midPoint.x;
-        const centerY = cam.midPoint.y;
+        const L = this.getDialogLayout();
 
-        // Базовые элементы диалога (не удаляем между этапами)
-        const overlay = this.add.rectangle(centerX, centerY, cam.width, cam.height, 0x000000, 0.6)
+        const overlay = this.add.rectangle(L.cx, L.cy, L.vw, L.vh, 0x000000, 0.6)
             .setScrollFactor(0)
             .setInteractive();
 
-        const panel = this.add.rectangle(centerX, centerY, 620, 340, 0x202225, 0.95)
+        const panel = this.add.rectangle(L.cx, L.cy, L.panelW, L.panelH, 0x202225, 0.95)
             .setScrollFactor(0)
             .setStrokeStyle(2, 0xffffff, 0.3);
 
         this.taxiDialog = this.add.container(0, 0, [overlay, panel]).setDepth(1000);
 
-        // Этап 1: вопрос + варианты ответа
-        const question = this.add.text(centerX, centerY - 110, 'Таксист: «Куда едем, дорогой?»', {
-            fontFamily: 'Arial',
-            fontSize: '26px',
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: 540 }
-        }).setOrigin(0.5).setScrollFactor(0);
+        this.renderTaxiDialogStage();
+    }
 
-        const narratorLabel = this.add.text(centerX, centerY - 45, 'Рассказчик выбирает:', {
-            fontFamily: 'Arial',
-            fontSize: '20px',
-            color: '#c9d1d9'
-        }).setOrigin(0.5).setScrollFactor(0);
+    clearTaxiDialogContent() {
+        if (!this.taxiDialog) return;
+        const keep = this.taxiDialog.list.slice(0, 2); // overlay + panel
+        const rest = this.taxiDialog.list.slice(2);
+        rest.forEach((obj) => obj.destroy());
 
-        const options = ['На Ромашку', 'К Цветнику', 'К Китайской беседке'];
-        const buttons = options.map((label, idx) =>
-            this.createDialogButton(centerX, centerY + 20 + idx * 52, label, () => this.handleTaxiChoice(label))
-        );
+        this.taxiDialog.removeAll();
+        this.taxiDialog.add(keep);
+    }
 
-        this.taxiDialog.add([question, narratorLabel, ...buttons]);
+    renderTaxiDialogStage() {
+        if (!this.taxiDialog) return;
+
+        this.clearTaxiDialogContent();
+
+        const L = this.getDialogLayout();
+        const panelTop = L.cy - L.panelH / 2;
+        const panelBottom = L.cy + L.panelH / 2;
+        const wrapW = Math.max(220, L.panelW - 48);
+
+        if (this.taxiDialogStage === 'choice') {
+            const question = this.add.text(L.cx, panelTop + 48, 'Таксист: «Куда едем, дорогой?»', {
+                fontFamily: 'Arial',
+                fontSize: `${Phaser.Math.Clamp(Math.floor(L.panelW * 0.04), 18, 26)}px`,
+                color: '#ffffff',
+                align: 'center',
+                wordWrap: { width: wrapW }
+            }).setOrigin(0.5).setScrollFactor(0);
+
+            const narratorLabel = this.add.text(L.cx, panelTop + 96, 'Рассказчик выбирает:', {
+                fontFamily: 'Arial',
+                fontSize: `${Phaser.Math.Clamp(Math.floor(L.panelW * 0.032), 15, 20)}px`,
+                color: '#c9d1d9'
+            }).setOrigin(0.5).setScrollFactor(0);
+
+            const options = ['На Ромашку', 'К Цветнику', 'К Китайской беседке'];
+            const startY = panelTop + 145;
+            const stepY = Phaser.Math.Clamp(Math.floor(L.panelH * 0.16), 38, 56);
+
+            const buttons = options.map((label, idx) =>
+                this.createDialogButton(L.cx, startY + idx * stepY, label, () => this.handleTaxiChoice(label))
+            );
+
+            this.taxiDialog.add([question, narratorLabel, ...buttons]);
+            return;
+        }
+
+        // answer stage
+        const taxiLine = this.add.text(
+            L.cx,
+            L.cy - 24,
+            'Таксист: «Без проблем! Садись, можно не пристегиваться, у меня брат в полиции работает!»',
+            {
+                fontFamily: 'Arial',
+                fontSize: `${Phaser.Math.Clamp(Math.floor(L.panelW * 0.035), 16, 22)}px`,
+                color: '#f9c74f',
+                align: 'center',
+                wordWrap: { width: wrapW }
+            }
+        ).setOrigin(0.5).setScrollFactor(0);
+
+        const goY = Math.min(panelBottom - 36, L.cy + L.panelH * 0.32);
+        const goButton = this.createDialogButton(L.cx, goY, 'Поехали!', () => {
+            this.dialogActive = false;
+            this.taxiDialog?.destroy();
+            this.taxiDialog = null;
+            this.scene.start('BootScene'); // если у вас ключ сцены именно BootSceen, замените строку
+        });
+
+        this.taxiDialog.add([taxiLine, goButton]);
+    }
+
+    handleTaxiChoice(choice) {
+        this.selectedTaxiChoice = choice;
+        this.taxiDialogStage = 'answer';
+        this.renderTaxiDialogStage();
     }
 
     createDialogButton(x, y, label, onSelect) {
+        const fontSize = Phaser.Math.Clamp(Math.floor(this.getDialogLayout().panelW * 0.033), 16, 22);
+
         const button = this.add.text(x, y, label, {
             fontFamily: 'Arial',
-            fontSize: '22px',
+            fontSize: `${fontSize}px`,
             color: '#ffffff',
             backgroundColor: '#2d333b',
             padding: { left: 12, right: 12, top: 6, bottom: 6 }
@@ -351,49 +410,6 @@ export default class HubScene extends Phaser.Scene {
         button.on('pointerdown', onSelect);
 
         return button;
-    }
-
-    handleTaxiChoice(choice) {
-        if (!this.taxiDialog) return;
-
-        // Удаляем все элементы, кроме overlay и panel (первые 2 объекта в контейнере)
-        const keep = this.taxiDialog.list.slice(0, 2);
-        const toRemove = this.taxiDialog.list.slice(2);
-        toRemove.forEach((obj) => obj.destroy());
-        this.taxiDialog.removeAll();
-        this.taxiDialog.add(keep);
-
-        const cam = this.cameras.main;
-        const centerX = cam.midPoint.x;
-        const centerY = cam.midPoint.y;
-
-        // Этап 2: ответ таксиста
-        const narratorLine = this.add.text(centerX, centerY - 40, `Рассказчик: «${choice}»`, {
-            fontFamily: 'Arial',
-            fontSize: '22px',
-            color: '#95d5b2',
-            align: 'center',
-            wordWrap: { width: 540 }
-        }).setOrigin(0.5).setScrollFactor(0);
-
-        const taxiLine = this.add.text(centerX, centerY + 20,
-            'Таксист: «Без проблем! Садись, можно не пристегиваться, у меня брат в полиции работает!»', {
-                fontFamily: 'Arial',
-                fontSize: '21px',
-                color: '#f9c74f',
-                align: 'center',
-                wordWrap: { width: 560 }
-            }).setOrigin(0.5).setScrollFactor(0);
-
-        // Этап 3: кнопка перехода
-        const goButton = this.createDialogButton(centerX, centerY + 120, 'Поехали!', () => {
-            this.dialogActive = false;
-            this.taxiDialog?.destroy();
-            this.taxiDialog = null;
-            this.scene.start('BootScene'); // если у вас ключ сцены именно BootSceen, замените строку
-        });
-
-        this.taxiDialog.add([narratorLine, taxiLine, goButton]);
     }
 
     applyPerspectiveScale(force = false) {
@@ -418,5 +434,23 @@ export default class HubScene extends Phaser.Scene {
         const current = this.player.sprite.scaleX;
         const next = Phaser.Math.Linear(current, targetScale, p.smooth);
         this.player.sprite.setScale(next);
+    }
+
+    getDialogLayout() {
+        const vw = this.scale.width;
+        const vh = this.scale.height;
+
+        const margin = Math.round(Math.min(vw, vh) * 0.04);
+        const panelW = Phaser.Math.Clamp(vw - margin * 2, 280, 620);
+        const panelH = Phaser.Math.Clamp(vh - margin * 2, 220, 360);
+
+        return {
+            vw,
+            vh,
+            cx: vw * 0.5,
+            cy: vh * 0.5,
+            panelW,
+            panelH
+        };
     }
 }
