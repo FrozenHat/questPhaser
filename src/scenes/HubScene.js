@@ -43,6 +43,17 @@ export default class HubScene extends Phaser.Scene {
 
         // Create player
         this.player = new Player(this, 0, 0);
+        // После создания player и bgHeight:
+        this.perspective = {
+        topY: Math.floor(bgHeight * 0.4),    // верх кадра (дальше)
+        bottomY: Math.floor(bgHeight * 0.92), // низ кадра (ближе)
+        minScale: 0.1,                       // размер вдали
+        maxScale: 1,                       // размер вблизи
+        smooth: 0.9                         // плавность
+        };
+
+    // стартовый масштаб
+    this.applyPerspectiveScale(true);
 
         // Navigation
         this.navigationSystem = new NavigationSystem(this, this.player);
@@ -266,6 +277,18 @@ export default class HubScene extends Phaser.Scene {
         if (this.occluder) {
             this.occluder.setDepth(this.occluder.y);
         }
+
+        if (this.player?.sprite) {
+            // Перспектива
+            this.applyPerspectiveScale();
+
+            // y-depth сортировка (у вас уже может быть)
+            this.player.sprite.setDepth(this.player.sprite.y);
+        }
+
+        if (this.occluder) {
+            this.occluder.setDepth(this.occluder.y);
+        }
     }
 
     shutdown() {
@@ -371,5 +394,29 @@ export default class HubScene extends Phaser.Scene {
         });
 
         this.taxiDialog.add([narratorLine, taxiLine, goButton]);
+    }
+
+    applyPerspectiveScale(force = false) {
+        if (!this.player?.sprite || !this.perspective) return;
+
+        const p = this.perspective;
+        const y = this.player.sprite.y;
+
+        // Нормализация 0..1 по вертикали сцены
+        const tRaw = (y - p.topY) / (p.bottomY - p.topY);
+        const t = Phaser.Math.Clamp(tRaw, 0, 1);
+
+        // Вверх -> меньше, вниз -> больше
+        const targetScale = Phaser.Math.Linear(p.minScale, p.maxScale, t);
+
+        if (force) {
+            this.player.sprite.setScale(targetScale);
+            return;
+        }
+
+        // Плавное изменение масштаба
+        const current = this.player.sprite.scaleX;
+        const next = Phaser.Math.Linear(current, targetScale, p.smooth);
+        this.player.sprite.setScale(next);
     }
 }

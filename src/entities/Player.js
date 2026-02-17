@@ -10,8 +10,8 @@ export default class Player {
         this.sprite.setOrigin(0.5, 0.85); // Anchor at feet
         
         // Set smaller physics body
-        const bodyWidth = 40;
-        const bodyHeight = 50;
+        const bodyWidth = 20;
+        const bodyHeight = 30;
         this.sprite.body.setSize(bodyWidth, bodyHeight);
         // Offset body to bottom of sprite
         this.sprite.body.setOffset(
@@ -21,7 +21,7 @@ export default class Player {
         
         // Player properties
         this.sprite.body.setCollideWorldBounds(true);
-        this.speed = 150;
+        this.speed = 180;
         
         // Current direction for animation
         this.currentDirection = 'Down';
